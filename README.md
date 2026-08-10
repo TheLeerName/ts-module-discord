@@ -7,7 +7,7 @@ Contains methods to use Discord bot API
 |Name|Description|
 |---|---|
 |`/ping`|Sends ping in milliseconds and uptime formatted with `HumanizeDuration.js` as embed message|
-|`/commands-update`|Sended on guild: updates slash commands in that guild\Sended outside guild: updates global slash commands|
+|`/commands-update`|Sended on guild: updates slash commands in that guild<br>Sended outside guild: updates global slash commands|
 |`/commands-guild-allow`|Allows specified slash command on specified guild|
 |`/commands-guild-ban`|Bans specified slash command on specified guild|
 
@@ -17,7 +17,7 @@ Contains methods to use Discord bot API
 
 |Command|Description|
 |---|---|
-|`node index.js discord:init`|Sets some required parameters for module:\- bot token\- bot activity text\- master guild id|
+|`node index.js discord:init`|Sets some required parameters for module:<br>- bot token<br>- bot activity text<br>- master guild id|
 |`node index.js discord:getinvitelink`|Outputs bot invite link to terminal|
 
 4. Adding intents / partials / permissions / scopes of bot
