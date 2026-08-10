@@ -100,52 +100,6 @@ export class ChatInputCommandInteraction<Cached extends Discord.CacheType = Disc
 	}
 }
 
-function checkCooldown(interaction: Discord.Interaction, command: SlashCommand | SlashSubcommand) {
-	if (command.cooldown) {
-		//if (Module.data.botOwnerID.length > 0 && Module.data.botOwnerID === interaction.user.id)
-			//return true;
-
-		const now = Date.now();
-		const lastUsed = command.usersUsedTimestamps.get(interaction.user.id);
-		if (lastUsed) {
-			const cooldownEnd = lastUsed + command.cooldown;
-			const timeLeft = cooldownEnd - now;
-			if (cooldownEnd > now) {
-				if (interaction.isChatInputCommand())
-					interaction.reply({embeds: [new Discord.EmbedBuilder()
-						.setTitle(`:x: Ошибка!`)
-						.setDescription(`\`\`\`\nСлишком частое использование данной команды! Попробуйте снова через ${Core.humanizeDuration(timeLeft)}.\n\`\`\``)
-						.setColor("#dd2e44")
-					], flags: "Ephemeral"});
-				return false;
-			}
-		}
-		command.usersUsedTimestamps.set(interaction.user.id, now);
-	}
-	return true;
-}
-
-function isCommandInGuildAllowed(slashCommandName: string, guildID: string) {
-	const guilds = Module.data.slashCommandGuildAllowed.get(slashCommandName);
-	if (!guilds) return !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
-	return guilds.get(guildID) ?? !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
-}
-
-function checkCommandInGuildAllowed(interaction: Discord.Interaction, command: SlashCommand | SlashSubcommand) {
-	if ((command instanceof SlashCommand && command.global) || !interaction.inGuild())
-		return true;
-	if (!isCommandInGuildAllowed(command.name, interaction.guildId)) {
-		if (interaction.isChatInputCommand())
-			interaction.reply({embeds: [new Discord.EmbedBuilder()
-				.setTitle(`:x: Ошибка!`)
-				.setDescription(`\`\`\`\nЭта слэш-команда была запрещена разработчиком бота на этом сервере!\n\`\`\``)
-				.setColor("#dd2e44")
-			]});
-		return false;
-	}
-	return true;
-}
-
 export type SlashCommandChatInput = (interaction: Discord.ChatInputCommandInteraction<Discord.CacheType>) => Promise<any | void>;
 export type SlashCommandAutocomplete = (interaction: Discord.AutocompleteInteraction<Discord.CacheType>) => Promise<any | void>;
 
@@ -197,23 +151,69 @@ export class SlashCommands extends Array<SlashCommand> {
 				await this.resetGuild(guild, false);*/
 	}
 
+	private checkCooldown(interaction: Discord.Interaction, command: SlashCommand | SlashSubcommand) {
+		if (command.cooldown) {
+			//if (Module.data.botOwnerID.length > 0 && Module.data.botOwnerID === interaction.user.id)
+				//return true;
+
+			const now = Date.now();
+			const lastUsed = command.usersUsedTimestamps.get(interaction.user.id);
+			if (lastUsed) {
+				const cooldownEnd = lastUsed + command.cooldown;
+				const timeLeft = cooldownEnd - now;
+				if (cooldownEnd > now) {
+					if (interaction.isChatInputCommand())
+						interaction.reply({embeds: [new Discord.EmbedBuilder()
+							.setTitle(`:x: Ошибка!`)
+							.setDescription(`\`\`\`\nСлишком частое использование данной команды! Попробуйте снова через ${Core.humanizeDuration(timeLeft)}.\n\`\`\``)
+							.setColor("#dd2e44")
+						], flags: "Ephemeral"});
+					return false;
+				}
+			}
+			command.usersUsedTimestamps.set(interaction.user.id, now);
+		}
+		return true;
+	}
+
+	isCommandInGuildAllowed(slashCommandName: string, guildID: string) {
+		const guilds = Module.data.slashCommandGuildAllowed.get(slashCommandName);
+		if (!guilds) return !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
+		return guilds.get(guildID) ?? !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
+	}
+
+	private checkCommandInGuildAllowed(interaction: Discord.Interaction, command: SlashCommand | SlashSubcommand) {
+		if ((command instanceof SlashCommand && command.global) || !interaction.inGuild())
+			return true;
+		if (!this.isCommandInGuildAllowed(command.name, interaction.guildId)) {
+			if (interaction.isChatInputCommand())
+				interaction.reply({embeds: [new Discord.EmbedBuilder()
+					.setTitle(`:x: Ошибка!`)
+					.setDescription(`\`\`\`\nЭта слэш-команда была запрещена разработчиком бота на этом сервере!\n\`\`\``)
+					.setColor("#dd2e44")
+				]});
+			return false;
+		}
+		return true;
+	}
+
 	private async interactionCreate(interaction: Discord.Interaction) {
 		const isChatInputCommand = interaction.isChatInputCommand();
 		const isAutocomplete = interaction.isAutocomplete();
 		if (!isChatInputCommand && !isAutocomplete) return;
 
 		for (const command of this) if (command.name === interaction.commandName) {
-			if (!checkCommandInGuildAllowed(interaction, command) || !checkCooldown(interaction, command)) continue;
+			if (!this.checkCommandInGuildAllowed(interaction, command) || !this.checkCooldown(interaction, command)) continue;
 
 			if (isChatInputCommand) command.chatInput?.(interaction);
 			else if (isAutocomplete) command.autocomplete?.(interaction);
 
 			const interactionSubcommandName = interaction.options.getSubcommand(false);
 			if (interactionSubcommandName) for (const subcommand of command.subcommands) {
-				if (!checkCommandInGuildAllowed(interaction, subcommand) || !checkCooldown(interaction, subcommand)) continue;
+				if (!this.checkCommandInGuildAllowed(interaction, subcommand) || !this.checkCooldown(interaction, subcommand)) continue;
 
 				if (subcommand.name === interactionSubcommandName) {
-					if (isChatInputCommand && checkCooldown(interaction, command)) subcommand.chatInput?.(interaction);
+					if (isChatInputCommand && this.checkCooldown(interaction, command)) subcommand.chatInput?.(interaction);
 					else if (isAutocomplete) subcommand.autocomplete?.(interaction);
 				}
 			}
@@ -239,7 +239,7 @@ export class SlashCommands extends Array<SlashCommand> {
 	}
 
 	async resetGuild(guild: Discord.Guild, log = true) {
-		const array = this.filter(command => !command.global && isCommandInGuildAllowed(command.name, guild.id) && (command.forMasterGuild ? (Module.data.masterGuildID.length > 1 ? guild.id === Module.data.masterGuildID : true) : true)).map(v => v.toJSON());
+		const array = this.filter(command => !command.global && this.isCommandInGuildAllowed(command.name, guild.id) && (command.forMasterGuild ? (Module.data.masterGuildID.length > 1 ? guild.id === Module.data.masterGuildID : true) : true)).map(v => v.toJSON());
 		await guild.commands.set(array);
 		if (log) Module.log.info("Slash commands for guild were resetted", {args: {guild: `${guild.name} (${guild.id})`, count: array.length}});
 	}

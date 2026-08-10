@@ -182,3 +182,5 @@ export class DiscordModule extends EventEmitter {
 	}
 }
 export default new DiscordModule();
+
+export * from "./slash-commands/index.js";
