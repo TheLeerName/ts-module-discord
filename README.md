@@ -16,8 +16,8 @@ Contains methods to use Discord bot API
 |---|---|
 |`node index.js discord:init`|Sets some required parameters for module:\- bot token\- bot activity text\- master guild id|
 |`node index.js discord:getinvitelink`|Outputs bot invite link to terminal|
-1. Adding intents / partials / permissions / scopes of bot
-2. `shard0Ready` callback to reload things on reconnect to discord
+4. Adding intents / partials / permissions / scopes of bot
+5. `shard0Ready` callback to reload things on reconnect to discord
 
 ## How to use this module?
 - Go to [parent repository](https://github.com/TheLeerName/ts-module-core) and read `README.md` file
