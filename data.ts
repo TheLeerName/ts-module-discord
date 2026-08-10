@@ -1,7 +1,7 @@
 import Core from "../../index.js";
 import { BaseData } from "../../data.js";
 
-export default class DiscordModuleData extends BaseData {
+export default class ModuleData extends BaseData {
 	version: number = 1;
 	token: string = "";
 	activity: string = "";
