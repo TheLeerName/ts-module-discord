@@ -56,7 +56,14 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 	}
 
 	toJSON(): Discord.RESTPostAPIChatInputApplicationCommandsJSONBody {
-		const json: any = super.toJSON();
+		let json: any;
+		try {
+			json = super.toJSON();
+		}
+		catch(error) {
+			Module.log.fatal("Slash command validation failed", {error, args: {name: this.name}});
+		}
+
 		delete json.version;
 		delete json.global;
 		delete json.chatInput;
