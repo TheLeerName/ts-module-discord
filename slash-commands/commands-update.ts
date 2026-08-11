@@ -19,7 +19,7 @@ export default () => new SlashCommand()
 	const args: any = {
 		user: `${interaction.user.username} (${interaction.user.id})`
 	};
-	if (interaction.guild) {
+	if (interaction.inCachedGuild()) {
 		args.guild = `${interaction.guild.name} (${interaction.guild.id})`;
 		await Module.slashCommands.resetGuild(interaction.guild);
 		await interaction.editReply({embeds: [new EmbedBuilder()

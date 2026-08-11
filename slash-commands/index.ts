@@ -14,12 +14,50 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 	version: number = 1;
 	global: boolean = false;
 	cooldown: number | null = null;
-	forMasterGuild: boolean = false;
+	bannable: boolean = true;
 	chatInput: SlashCommandChatInput | null = null;
 	autocomplete: SlashCommandAutocomplete | null = null;
 
 	usersUsedTimestamps: Map<string, number> = new Map();
 	subcommands: SlashSubcommand[] = [];
+
+	isAllowedInGuild(guildID: string) {
+		if (this.global) return false;
+		if (!this.bannable) return true;
+		if (Module.data.masterGuildID.length > 0 && Module.data.masterGuildID === guildID) return true;
+
+		const guilds = Module.data.slashCommandGuildAllowed.get(this.name);
+		if (!guilds) return !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
+		return guilds.get(guildID) ?? !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
+	}
+	/** @returns is value was changed, if `true`, do `Module.data.save()` */
+	setAllowedInGuild(guildID: string, value: boolean | null) {
+		if (!this.bannable) return;
+		let dataGuilds = Module.data.slashCommandGuildAllowed.get(this.name);
+
+		if (value != null) {
+			if (dataGuilds) {
+				if (dataGuilds.get(guildID) === value)
+					return false;
+			}
+			else {
+				dataGuilds = new Map();
+				Module.data.slashCommandGuildAllowed.set(this.name, dataGuilds);
+			}
+
+			dataGuilds.set(guildID, value);
+		}
+		else {
+			if (dataGuilds) {
+				if (dataGuilds.has(guildID))
+					dataGuilds.delete(guildID);
+				if (Array.from(dataGuilds.keys()).length < 1)
+					Module.data.slashCommandGuildAllowed.delete(this.name);
+			}
+		}
+
+		return true;
+	}
 
 	setVersion(value: number) {
 		this.version = value;
@@ -34,8 +72,8 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 		this.cooldown = cooldown;
 		return this;
 	}
-	setForMasterGuild(forMasterGuild: boolean) {
-		this.forMasterGuild = forMasterGuild;
+	setBannable(bannable: boolean) {
+		this.bannable = bannable;
 		return this;
 	}
 	setChatInput(chatInput: SlashCommandChatInput) {
@@ -66,9 +104,13 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 
 		delete json.version;
 		delete json.global;
+		delete json.cooldown;
+		delete json.bannable;
+		delete json.forMasterGuild;
 		delete json.chatInput;
 		delete json.autocomplete;
 		delete json.subcommands;
+		delete json.usersUsedTimestamps;
 		return json;
 	}
 }
@@ -131,6 +173,8 @@ export class SlashCommands extends Array<SlashCommand> {
 			}
 		}
 
+		//await this.resetGuild(await Module.client.guilds.fetch("543464250702561290"));
+
 		/*let globalReset = false;
 		let guildsReset = false;
 		let save = false;*/
@@ -184,15 +228,15 @@ export class SlashCommands extends Array<SlashCommand> {
 	}
 
 	isCommandInGuildAllowed(slashCommandName: string, guildID: string) {
-		const guilds = Module.data.slashCommandGuildAllowed.get(slashCommandName);
-		if (!guilds) return !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
-		return guilds.get(guildID) ?? !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
+		const slashCommand = this.findByName(slashCommandName);
+		if (!slashCommand) return !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
+		return slashCommand.isAllowedInGuild(guildID);
 	}
 
-	private checkCommandInGuildAllowed(interaction: Discord.Interaction, command: SlashCommand | SlashSubcommand) {
-		if ((command instanceof SlashCommand && command.global) || !interaction.inGuild())
+	private checkCommandInGuildAllowed(interaction: Discord.Interaction, command: SlashCommand) {
+		if (!interaction.inGuild())
 			return true;
-		if (!this.isCommandInGuildAllowed(command.name, interaction.guildId)) {
+		if (!command.isAllowedInGuild(interaction.guildId)) {
 			if (interaction.isChatInputCommand())
 				interaction.reply({embeds: [new Discord.EmbedBuilder()
 					.setTitle(`:x: Ошибка!`)
@@ -217,7 +261,7 @@ export class SlashCommands extends Array<SlashCommand> {
 
 			const interactionSubcommandName = interaction.options.getSubcommand(false);
 			if (interactionSubcommandName) for (const subcommand of command.subcommands) {
-				if (!this.checkCommandInGuildAllowed(interaction, subcommand) || !this.checkCooldown(interaction, subcommand)) continue;
+				if (!this.checkCooldown(interaction, subcommand)) continue;
 
 				if (subcommand.name === interactionSubcommandName) {
 					if (isChatInputCommand && this.checkCooldown(interaction, command)) subcommand.chatInput?.(interaction);
@@ -234,6 +278,13 @@ export class SlashCommands extends Array<SlashCommand> {
 		}
 		return null;
 	}
+	findBannableByName(name: string): SlashCommand | null {
+		for (const command of this) {
+			if (command.bannable && command.name === name)
+				return command;
+		}
+		return null;
+	}
 
 	async resetGlobal(log = true) {
 		const array = this.filter(v => v.global).map(v => v.toJSON());
@@ -246,7 +297,7 @@ export class SlashCommands extends Array<SlashCommand> {
 	}
 
 	async resetGuild(guild: Discord.Guild, log = true) {
-		const array = this.filter(command => !command.global && this.isCommandInGuildAllowed(command.name, guild.id) && (command.forMasterGuild ? (Module.data.masterGuildID.length > 1 ? guild.id === Module.data.masterGuildID : true) : true)).map(v => v.toJSON());
+		const array = this.filter(c => c.isAllowedInGuild(guild.id)).map(v => v.toJSON());
 		await guild.commands.set(array);
 		if (log) Module.log.info("Slash commands for guild were resetted", {args: {guild: `${guild.name} (${guild.id})`, count: array.length}});
 	}

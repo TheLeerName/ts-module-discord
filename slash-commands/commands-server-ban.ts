@@ -7,20 +7,27 @@ import { EmbedBuilder } from "discord.js";
 export default () => {
 	const c = new SlashCommand()
 	.setVersion(1)
-	.setForMasterGuild(true)
+	.setBannable(false)
 	.setName("commands-server-ban")
 	.setDescription("Bans specified slash commands for specified server")
 	.setDescriptionLocalization("ru", "Запрещает выбранные слэш-команды для выбранного сервера")
 	.setAutocomplete(async(interaction) => {
 		const focused = interaction.options.getFocused(true);
 		if (focused.name === "server-id")
-			return await interaction.respond(interaction.client.guilds.cache.map(g => {return {name: g.name, value: g.id}}).sort((a, b) => a.name.indexOf(focused.value) - b.name.indexOf(focused.value)).slice(0, 5));
+			return interaction.respond(interaction.client.guilds.cache.map(g => {return {name: g.name, value: g.id}}).sort((a, b) => a.name.indexOf(focused.value) - b.name.indexOf(focused.value)).slice(0, 5));
 		if (focused.name === "slash-command-names") {
-			const index = focused.value.indexOf(",");
-			if (index > -1)
-				focused.value = focused.value.substring(index + 1);
+			if (interaction.inCachedGuild()) {
+				const index = focused.value.lastIndexOf(",");
+				let beforeLastIndex = "";
+				let afterLastIndex = focused.value;
+				if (index > -1) {
+					beforeLastIndex = focused.value.substring(0, index + 1);
+					afterLastIndex = focused.value.substring(index + 1);
+				}
 
-			return await interaction.respond(SlashCommands.filter(s => !s.global).sort((a, b) => a.name.indexOf(focused.value) - b.name.indexOf(focused.value)).slice(0, 5).map(s => {return {name: s.name, value: s.name}}));
+				return interaction.respond(SlashCommands.filter(s => !s.global && s.bannable).sort((a, b) => b.name.indexOf(afterLastIndex) - a.name.indexOf(afterLastIndex)).slice(0, 10).map(s => beforeLastIndex + s.name + ",").map(s => {return {name: s, value: s}}));
+			}
+			return interaction.respond([]);
 		}
 	})
 	.setChatInput(async(interaction) => {
@@ -49,20 +56,13 @@ export default () => {
 
 			try {
 				for (const slashCommandName of slashCommandNames.split(",")) {
-					if (!Module.slashCommands.findByName(slashCommandName))
-						throw new Error(`Я не нашёл у себя слэш-команды с названием "${slashCommandName}"!`);
+					const slashCommand = Module.slashCommands.findBannableByName(slashCommandName);
+					if (!slashCommand)
+						throw new Error(`Слэш-команда "${slashCommandName}" либо не существует либо её нельзя запретить на этом сервере!`);
 
-					let dataGuilds = Module.data.slashCommandGuildAllowed.get(slashCommandName);
-					if (dataGuilds) {
-						if (dataGuilds.get(guild.id) == false)
-							throw new Error(`Слэш-команда "${slashCommandName}" уже была запрещена на сервере ${guild.name}!`);
-					}
-					else {
-						dataGuilds = new Map();
-						Module.data.slashCommandGuildAllowed.set(slashCommandName, dataGuilds);
-					}
-
-					dataGuilds.set(guild.id, false);
+					const result = slashCommand.setAllowedInGuild(guild.id, false);
+					if (!result)
+						throw new Error(`Слэш-команда "${slashCommandName}" уже была запрещена на этом сервере!`);
 				}
 			}
 			finally {
