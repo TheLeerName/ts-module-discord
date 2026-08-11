@@ -8,12 +8,12 @@ export default () => {
 	const c = new SlashCommand()
 	.setVersion(1)
 	.setForMasterGuild(true)
-	.setName("commands-guild-ban")
-	.setDescription("Bans specified slash commands for specified guild")
+	.setName("commands-server-ban")
+	.setDescription("Bans specified slash commands for specified server")
 	.setDescriptionLocalization("ru", "Запрещает выбранные слэш-команды для выбранного сервера")
 	.setAutocomplete(async(interaction) => {
 		const focused = interaction.options.getFocused(true);
-		if (focused.name === "guild-id")
+		if (focused.name === "server-id")
 			return await interaction.respond(interaction.client.guilds.cache.map(g => {return {name: g.name, value: g.id}}).sort((a, b) => a.name.indexOf(focused.value) - b.name.indexOf(focused.value)).slice(0, 5));
 		if (focused.name === "slash-command-names") {
 			const index = focused.value.indexOf(",");
@@ -34,9 +34,9 @@ export default () => {
 			user: `${interaction.user.username} (${interaction.user.id})`
 		};
 		try {
-			const guildID = interaction.options.getString("guild-id", true);
+			const guildID = interaction.options.getString("server-id", true);
 			if (guildID.length < 1)
-				throw new Error("Параметр guild-id не указан");
+				throw new Error("Параметр server-id не указан");
 			args.guildID = guildID;
 
 			let slashCommandNames = interaction.options.getString("slash-command-names", true);
@@ -90,11 +90,13 @@ export default () => {
 		}
 	});
 	c.addStringOption(option => option
-		.setName("guild-id")
+		.setName("server-id")
+		.setDescription("Discord server id")
 		.setRequired(true)
 		.setAutocomplete(true)
 	).addStringOption(option => option
 		.setName("slash-command-names")
+		.setDescription("Discord slash command names")
 		.setRequired(true)
 		.setAutocomplete(true)
 	)

@@ -8,15 +8,20 @@ export default () => {
 	const c = new SlashCommand()
 	.setVersion(1)
 	.setForMasterGuild(true)
-	.setName("commands-guild-allow")
-	.setDescription("Allows specified slash command for specified guild")
-	.setDescriptionLocalization("ru", "Разрешает выбранную слэш-команду для выбранного сервера")
+	.setName("commands-server-allow")
+	.setDescription("Allows specified slash commands for specified server")
+	.setDescriptionLocalization("ru", "Разрешает выбранные слэш-команды для выбранного сервера")
 	.setAutocomplete(async(interaction) => {
 		const focused = interaction.options.getFocused(true);
-		if (focused.name === "guild-id")
+		if (focused.name === "server-id")
 			return await interaction.respond(interaction.client.guilds.cache.map(g => {return {name: g.name, value: g.id}}));
-		if (focused.name === "slash-command-name")
+		if (focused.name === "slash-command-names") {
+			const index = focused.value.indexOf(",");
+			if (index > -1)
+				focused.value = focused.value.substring(index + 1);
+
 			return await interaction.respond(SlashCommands.filter(s => !s.global).sort((a, b) => a.name.indexOf(focused.value) - b.name.indexOf(focused.value)).slice(0, 5).map(s => {return {name: s.name, value: s.name}}));
+		}
 	})
 	.setChatInput(async(interaction) => {
 		if (!interaction.inCachedGuild()) return;
@@ -29,34 +34,40 @@ export default () => {
 			user: `${interaction.user.username} (${interaction.user.id})`
 		};
 		try {
-			const guildID = interaction.options.getString("guild-id", true);
+			const guildID = interaction.options.getString("server-id", true);
 			if (guildID.length < 1)
-				throw new Error("Параметр guild-id не указан");
+				throw new Error("Параметр server-id не указан");
 			args.guildID = guildID;
 
-			const slashCommandName = interaction.options.getString("slash-command-name", true);
-			if (slashCommandName.length < 1)
-				throw new Error("Параметр slash-command-name не указан");
-			args.slashCommandName = slashCommandName;
-
-			if (!Module.slashCommands.findByName(slashCommandName))
-				throw new Error(`Я не нашёл у себя слэш-команды с названием "${slashCommandName}"!`);
+			let slashCommandNames = interaction.options.getString("slash-command-names", true);
+			if (slashCommandNames.length < 1)
+				throw new Error("Параметр slash-command-names не указан");
+			args.slashCommandNames = slashCommandNames;
 
 			const guild = await interaction.client.guilds.fetch(guildID);
 			args.guildName = guild.name;
 
-			let dataGuilds = Module.data.slashCommandGuildAllowed.get(slashCommandName);
-			if (dataGuilds) {
-				if (dataGuilds.get(guild.id) == true)
-					throw new Error(`Слэш-команда "${slashCommandName}" уже была разрешена на сервере ${guild.name}!`);
-			}
-			else {
-				dataGuilds = new Map();
-				Module.data.slashCommandGuildAllowed.set(slashCommandName, dataGuilds);
-			}
+			try {
+				for (const slashCommandName of slashCommandNames.split(",")) {
+					if (!Module.slashCommands.findByName(slashCommandName))
+						throw new Error(`Я не нашёл у себя слэш-команды с названием "${slashCommandName}"!`);
 
-			dataGuilds.set(guild.id, true);
-			Module.data.save();
+					let dataGuilds = Module.data.slashCommandGuildAllowed.get(slashCommandName);
+					if (dataGuilds) {
+						if (dataGuilds.get(guild.id) == true)
+							throw new Error(`Слэш-команда "${slashCommandName}" уже была разрешена на сервере ${guild.name}!`);
+					}
+					else {
+						dataGuilds = new Map();
+						Module.data.slashCommandGuildAllowed.set(slashCommandName, dataGuilds);
+					}
+
+					dataGuilds.set(guild.id, true);
+				}
+			}
+			finally {
+				Module.data.save();
+			}
 
 			await SlashCommands.resetGuild(guild);
 
@@ -79,11 +90,13 @@ export default () => {
 		}
 	});
 	c.addStringOption(option => option
-		.setName("guild-id")
+		.setName("server-id")
+		.setDescription("Discord server id")
 		.setRequired(true)
 		.setAutocomplete(true)
 	).addStringOption(option => option
-		.setName("slash-command-name")
+		.setName("slash-command-names")
+		.setDescription("Discord slash command names")
 		.setRequired(true)
 		.setAutocomplete(true)
 	)

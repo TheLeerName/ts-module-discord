@@ -3,8 +3,8 @@ import Module from "../index.js";
 import PingCommand from "./ping.js";
 import InviteLinkCommand from "./invite-link.js";
 import CommandsUpdateCommand from "./commands-update.js";
-import GuildAllowCommand from "./commands-guild-allow.js";
-import GuildBanCommand from "./commands-guild-ban.js";
+import ServerAllowCommand from "./commands-server-allow.js";
+import ServerBanCommand from "./commands-server-ban.js";
 
 import * as Discord from "discord.js";
 
@@ -121,7 +121,7 @@ export class SlashCommands extends Array<SlashCommand> {
 
 	async initialize2() {
 		if (Module.data.masterGuildID.length > 0) {
-			const commandsToPush = [InviteLinkCommand(), GuildAllowCommand(), GuildBanCommand()];
+			const commandsToPush = [InviteLinkCommand(), ServerAllowCommand(), ServerBanCommand()];
 			try {
 				await Module.client.guilds.fetch(Module.data.masterGuildID);
 				this.push(...commandsToPush);
