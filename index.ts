@@ -149,7 +149,6 @@ export class DiscordModule extends EventEmitter {
 					}});
 				}
 			}*/
-			console.log(e);
 			throw e;
 		});
 	}
