@@ -1,13 +1,12 @@
-import { DiscordAPIError, DiscordjsError } from "discord.js";
-import TerminalCommands, { ReadlineInterfaceAdvanced } from "../../../terminal-commands/index.js";
+import TerminalCommands, { readline } from "../../../terminal-commands/index.js";
 import Module from "../index.js";
 
-async function tokenPart(rl: ReadlineInterfaceAdvanced) {
+async function tokenPart(rl: readline.Interface) {
 	console.log(`Enter Discord bot token here\nYou can get it from https://discord.com/developers/applications\n`);
 
 	if (Module.data.token)
 		rl.write(Module.data.token);
-	const token = await rl.questionAsync("token: ");
+	const token = await rl.question("token: ");
 
 	let date = Date.now();
 	console.log("\nWaiting for connection...");
@@ -39,23 +38,23 @@ async function tokenPart(rl: ReadlineInterfaceAdvanced) {
 	console.log(`Successfully verified and saved! (${Date.now() - date}ms elapsed)`);
 }
 
-async function activityPart(rl: ReadlineInterfaceAdvanced) {
+async function activityPart(rl: readline.Interface) {
 	console.log(`Enter Discord bot activity status\nLeave empty to disable it\nPlaceholders:\n%version% - app version\n`);
 
 	if (Module.data.activity)
 		rl.write(Module.data.activity);
-	const activity = await rl.questionAsync("activity: ");
+	const activity = await rl.question("activity: ");
 	Module.data.activity = activity;
 	Module.data.save();
 	console.log("Saved!");
 }
 
-async function masterGuildIDPart(rl: ReadlineInterfaceAdvanced) {
+async function masterGuildIDPart(rl: readline.Interface) {
 	console.log(`Enter Discord master guild id\nMaster guild is discord server, where you can use some bot management things like: allowing/banning slash commands for specified guild\nBot must be in that server for getting info about it\nTo get it, firstly enable developer mode in Discord, and RMB on guild icon and copy ID\nLeave empty to disable it\n`);
 
 	if (Module.data.masterGuildID)
 		rl.write(Module.data.masterGuildID);
-	const masterGuildID = await rl.questionAsync("masterGuildID: ");
+	const masterGuildID = await rl.question("masterGuildID: ");
 
 	if (masterGuildID.length > 0) {
 		let date = Date.now();
@@ -126,7 +125,7 @@ export default () => {
 			if (Module.data.token.length < 1)
 				await tokenPart(rl);
 			else {
-				if ((await rl.questionAsync("Edit Discord bot token? (y/n): ")).toLowerCase() === "y")
+				if ((await rl.question("Edit Discord bot token? (y/n): ")).toLowerCase() === "y")
 					await tokenPart(rl);
 			}
 			console.log("");
@@ -141,7 +140,7 @@ export default () => {
 			if (Module.data.activity.length < 1)
 				await activityPart(rl);
 			else {
-				if ((await rl.questionAsync("Edit Discord bot activity status? (y/n): ")).toLowerCase() === "y") {
+				if ((await rl.question("Edit Discord bot activity status? (y/n): ")).toLowerCase() === "y") {
 					console.log("");
 					await activityPart(rl);
 				}
@@ -158,7 +157,7 @@ export default () => {
 			if (Module.data.masterGuildID.length < 1)
 				await masterGuildIDPart(rl);
 			else {
-				if ((await rl.questionAsync("Edit Discord master guild ID? (y/n): ")).toLowerCase() === "y") {
+				if ((await rl.question("Edit Discord master guild ID? (y/n): ")).toLowerCase() === "y") {
 					console.log("");
 					await masterGuildIDPart(rl);
 				}
