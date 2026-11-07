@@ -24,9 +24,9 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 
 	isAllowedInGuild(guildID: string) {
 		if (this.global) return true;
-		if (!this.bannable) return true;
 		if (this.forMasterGuild)
 			return Module.data.masterGuildID.length > 0 && Module.data.masterGuildID === guildID;
+		if (!this.bannable) return true;
 		if (Module.data.masterGuildID.length > 0 && Module.data.masterGuildID === guildID) return true;
 
 		const guilds = Module.data.slashCommandGuildAllowed.get(this.name);
