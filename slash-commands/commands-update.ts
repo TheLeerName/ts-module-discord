@@ -7,6 +7,7 @@ import { EmbedBuilder } from "discord.js";
 export default () => new SlashCommand()
 .setGlobal()
 .setVersion(1)
+.setBannable(false)
 .setCooldown(30000)
 .setName("commands-update")
 .setDescription("Updates slash commands of bot")

@@ -15,6 +15,7 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 	global: boolean = false;
 	cooldown: number | null = null;
 	bannable: boolean = true;
+	forMasterGuild: boolean = false;
 	chatInput: SlashCommandChatInput | null = null;
 	autocomplete: SlashCommandAutocomplete | null = null;
 
@@ -22,8 +23,10 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 	subcommands: SlashSubcommand[] = [];
 
 	isAllowedInGuild(guildID: string) {
-		if (this.global) return false;
+		if (this.global) return true;
 		if (!this.bannable) return true;
+		if (this.forMasterGuild)
+			return Module.data.masterGuildID.length > 0 && Module.data.masterGuildID === guildID;
 		if (Module.data.masterGuildID.length > 0 && Module.data.masterGuildID === guildID) return true;
 
 		const guilds = Module.data.slashCommandGuildAllowed.get(this.name);
@@ -74,6 +77,10 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 	}
 	setBannable(bannable: boolean) {
 		this.bannable = bannable;
+		return this;
+	}
+	setForMasterGuild(forMasterGuild: boolean) {
+		this.forMasterGuild = forMasterGuild;
 		return this;
 	}
 	setChatInput(chatInput: SlashCommandChatInput) {
@@ -173,6 +180,7 @@ export class SlashCommands extends Array<SlashCommand> {
 			}
 		}
 
+		//await this.resetGlobal();
 		//await this.resetGuild(await Module.client.guilds.fetch("543464250702561290"));
 
 		/*let globalReset = false;
@@ -297,7 +305,7 @@ export class SlashCommands extends Array<SlashCommand> {
 	}
 
 	async resetGuild(guild: Discord.Guild, log = true) {
-		const array = this.filter(c => c.isAllowedInGuild(guild.id)).map(v => v.toJSON());
+		const array = this.filter(c => !c.global && c.isAllowedInGuild(guild.id)).map(v => v.toJSON());
 		await guild.commands.set(array);
 		if (log) Module.log.info("Slash commands for guild were resetted", {args: {guild: `${guild.name} (${guild.id})`, count: array.length}});
 	}

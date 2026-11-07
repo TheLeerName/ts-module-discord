@@ -7,6 +7,7 @@ import { EmbedBuilder } from "discord.js";
 export default () => new SlashCommand()
 .setVersion(1)
 .setBannable(false)
+.setForMasterGuild(true)
 .setName("invite-link")
 .setDescription("Sends invite link of bot for discord server")
 .setDescriptionLocalization("ru", "Отправляет ссылку приглашения бота для Discord-сервера")

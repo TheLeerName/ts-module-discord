@@ -8,6 +8,7 @@ export default () => {
 	const c = new SlashCommand()
 	.setVersion(1)
 	.setBannable(false)
+	.setForMasterGuild(true)
 	.setName("commands-server-ban")
 	.setDescription("Bans specified slash commands for specified server")
 	.setDescriptionLocalization("ru", "Запрещает выбранные слэш-команды для выбранного сервера")

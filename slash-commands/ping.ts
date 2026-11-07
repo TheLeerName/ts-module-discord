@@ -7,6 +7,7 @@ import { EmbedBuilder, InteractionContextType, ApplicationIntegrationType } from
 export default () => new SlashCommand()
 .setGlobal()
 .setVersion(3)
+.setBannable(false)
 .setName("ping")
 .setDescription("Pings bot")
 .setDescriptionLocalization("ru", "Пингует бота")
