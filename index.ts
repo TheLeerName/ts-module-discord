@@ -161,13 +161,49 @@ export class DiscordModule extends EventEmitter {
 		});
 	}
 
+	async fetchChannelWithNotFoundHandling(guild: Discord.Guild, id: Discord.Snowflake, options?: Discord.BaseFetchOptions) {
+		try {
+			return guild.channels.fetch(id, options);
+		}
+		catch(e) {
+			if (e instanceof Discord.DiscordAPIError && e.code === 10003) {
+				return null;
+			}
+			throw e;
+		}
+	}
+
+	async fetchGuildMemberWithNotFoundHandling(guild: Discord.Guild, options: Discord.UserResolvable | Discord.FetchMemberOptions | (Discord.FetchMembersOptions & { user: Discord.UserResolvable })) {
+		try {
+			return guild.members.fetch(options);
+		}
+		catch(e) {
+			if (e instanceof Discord.DiscordAPIError && e.code === 10013) {
+				return null;
+			}
+			throw e;
+		}
+	}
+
+	async fetchMessageWithNotFoundHandling(channel: Discord.SendableChannels, options: Discord.MessageResolvable | Discord.FetchMessageOptions) {
+		try {
+			return channel.messages.fetch(options);
+		}
+		catch(e) {
+			if (e instanceof Discord.DiscordAPIError && e.code === 10008) {
+				return null;
+			}
+			throw e;
+		}
+	}
+
 	/** @returns `${guild.name} (${guild.id})` */
 	getGuildNameAndID(guild: Discord.Guild): string {
 		return `${guild.name} (${guild.id})`;
 	}
 	/** @returns `${channel.name} (${channel.id})` */
 	getChannelNameAndID(channel: Exclude<Discord.Channel, Discord.DMChannel | Discord.PartialDMChannel>): string {
-		return `${channel.name} (${channel.id})`;
+		return `${channel.type === Discord.ChannelType.GuildText ? "#" : ""}${channel.name} (${channel.id})`;
 	}
 	/** @returns `${user.name} (${user.id})` */
 	getGuildMemberNameAndID(member: Discord.GuildMember): string {
@@ -176,6 +212,10 @@ export class DiscordModule extends EventEmitter {
 	/** @returns `${user.name} (${user.id})` */
 	getUserNameAndID(user: Discord.User): string {
 		return `${user.username} (${user.id})`;
+	}
+	/** @returns `${role.name} (${role.id})` */
+	getRoleNameAndID(role: Discord.Role): string {
+		return `@${role.name} (${role.id})`;
 	}
 
 	isNewsChannel(channel: Discord.Channel): channel is Discord.NewsChannel {
