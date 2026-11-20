@@ -65,7 +65,7 @@ export class DiscordAuthorizationManager {
 		return this;
 	}
 
-	readonly permissions: Discord.PermissionResolvable[] = [Discord.PermissionFlagsBits.UseApplicationCommands];
+	readonly permissions: Discord.PermissionResolvable[] = [];
 	addPermissions(...permissions: Discord.PermissionResolvable[]) {
 		for (const permission of permissions) if (!this.permissions.includes(permission)) this.permissions.push(permission);
 		return this;
