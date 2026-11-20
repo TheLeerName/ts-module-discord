@@ -161,6 +161,23 @@ export class DiscordModule extends EventEmitter {
 		});
 	}
 
+	/** @returns `${guild.name} (${guild.id})` */
+	getGuildNameAndID(guild: Discord.Guild): string {
+		return `${guild.name} (${guild.id})`;
+	}
+	/** @returns `${channel.name} (${channel.id})` */
+	getChannelNameAndID(channel: Exclude<Discord.Channel, Discord.DMChannel | Discord.PartialDMChannel>): string {
+		return `${channel.name} (${channel.id})`;
+	}
+	/** @returns `${user.name} (${user.id})` */
+	getGuildMemberNameAndID(member: Discord.GuildMember): string {
+		return `${member.nickname ?? member.user.username} (${member.user.id})`;
+	}
+	/** @returns `${user.name} (${user.id})` */
+	getUserNameAndID(user: Discord.User): string {
+		return `${user.username} (${user.id})`;
+	}
+
 	isNewsChannel(channel: Discord.Channel): channel is Discord.NewsChannel {
 		return channel.type === Discord.ChannelType.GuildAnnouncement;
 	}
