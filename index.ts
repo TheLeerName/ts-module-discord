@@ -124,10 +124,18 @@ export class DiscordModule extends EventEmitter {
 			.on("shard0Resume", (replayedEvents) => {
 				this.log.info(`Discord bot reconnected`, {args: {replayedEvents}});
 				this.client.once("shard0Reconnecting", () => this.onShard0Reconnecting());
-			}).on("shard0Ready", (unavailableGuilds) => {
+			})
+			.on("shard0Ready", (unavailableGuilds) => {
 				this.log.info(`Discord bot connected`, {args: {unavailableGuilds}});
 				this.client.once("shard0Reconnecting", () => this.onShard0Reconnecting());
-			}).rest.on("rateLimited", (info) => {
+			})
+			.on("guildCreate", guild => {
+				this.log.info("Bot was invited to the guild", {args: {guild: this.getGuildNameAndID(guild)}});
+			})
+			.on("guildDelete", guild => {
+				this.log.info("Bot was kicked from the guild or guild was deleted", {args: {guild: this.getGuildNameAndID(guild)}});
+			})
+			.rest.on("rateLimited", (info) => {
 				this.log.warn(`Rate limit hit!`, {args: {info}});
 			});
 
