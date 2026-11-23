@@ -5,7 +5,7 @@ Contains methods to use Discord bot API
 1. Adds discord slash commands:
 
 |Name|Type|Description|
-|---|---|
+|---|---|---|
 |`/ping`|Global|Sends ping in milliseconds and uptime formatted with `HumanizeDuration.js` as embed message|
 |`/commands-update`|Global|Sended on guild: updates slash commands in that guild<br>Sended outside guild: updates global slash commands|
 |`/commands-guild-allow`|Guild-only|Allows specified slash command on specified guild|
