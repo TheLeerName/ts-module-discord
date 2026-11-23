@@ -1,14 +1,10 @@
-import Core from "../../../index.js";
 import Module from "../index.js";
-import { SlashCommand } from "./index.js";
+import { EmbedBuilder } from "discord.js";
 
-import { EmbedBuilder, InteractionContextType, ApplicationIntegrationType } from "discord.js";
-
-export default () => new SlashCommand()
+export default () => Module.slashCommands.make("ping", c => c
 .setGlobal()
 .setVersion(3)
 .setBannable(false)
-.setName("ping")
 .setDescription("Pings bot")
 .setDescriptionLocalization("ru", "Пингует бота")
 .setChatInput(async(interaction) => {
@@ -20,7 +16,7 @@ export default () => new SlashCommand()
 		.setTitle(`:ping_pong: Понг!`)
 		.addFields(
 			{name: "Пинг", value: "*замеряю*"},
-			{name: "Аптайм", value: Core.humanizeDuration(uptime)},
+			{name: "Аптайм", value: Module.core.humanizeDuration(uptime)},
 		)
 		.setColor("#77b255")
 	]});
@@ -29,7 +25,7 @@ export default () => new SlashCommand()
 		.setTitle(`:ping_pong: Понг!`)
 		.addFields(
 			{name: "Пинг", value: "*замеряю ещё раз*"},
-			{name: "Аптайм", value: Core.humanizeDuration(uptime)},
+			{name: "Аптайм", value: Module.core.humanizeDuration(uptime)},
 		)
 		.setColor("#77b255")
 	]});
@@ -38,17 +34,17 @@ export default () => new SlashCommand()
 	message = await interaction.editReply({embeds: [new EmbedBuilder()
 		.setTitle(`:ping_pong: Понг!`)
 		.addFields(
-			{name: "Пинг", value: Core.humanizeDuration(ping)},
-			{name: "Аптайм", value: Core.humanizeDuration(uptime)},
+			{name: "Пинг", value: Module.core.humanizeDuration(ping)},
+			{name: "Аптайм", value: Module.core.humanizeDuration(uptime)},
 		)
 		.setColor("#77b255")
 	]});
 
 	const args: any = {
-		user: `${interaction.user.username} (${interaction.user.id})`,
+		user: Module.getUserNameAndID(interaction.user),
 		ping: `${ping}ms`,
 		uptime: `${uptime / 1000}s`
 	};
-	if (interaction.guild) args.guild = `${interaction.guild.name} (${interaction.guild.id})`;
+	if (interaction.guild) args.guild = Module.getGuildNameAndID(interaction.guild);
 	Module.log.info(`Command ${interaction.commandName} success`, {args});
-});
+}));

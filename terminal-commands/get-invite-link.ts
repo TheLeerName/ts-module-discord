@@ -3,6 +3,7 @@ import Module from "../index.js";
 
 export default () => {
 	TerminalCommands.registerWithReadlineInterface("discord:getinvitelink", async(argv, rl) => {
+		await Module.load();
 		Module.data.checkRequiredFields();
 
 		console.log("\nWaiting for connection...");
@@ -28,7 +29,7 @@ export default () => {
 			return true;
 		}
 
-		Module.emit("addAuthorizationFields", Reflect.get(Module, "authorizationManager"));
+		Module.emit("beforeClientCreation");
 
 		console.log(`Bot invite link:\n${Module.getInviteURL()}`);
 		Module.client.destroy();

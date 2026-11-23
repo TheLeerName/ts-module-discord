@@ -114,6 +114,7 @@ async function masterGuildIDPart(rl: readline.Interface) {
 
 export default () => {
 	TerminalCommands.registerWithReadlineInterface("discord:init", async(argv, rl) => {
+		await Module.load();
 		console.log("");
 
 		if (argv.length > 0) {

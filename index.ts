@@ -1,5 +1,5 @@
-import Core from "../../index.js";
-import DiscordModuleData from "./data.js";
+import * as Core from "../../index.js";
+import Data from "./data.js";
 import SlashCommands from "./slash-commands/index.js";
 import RegisterTerminalCommandInit from "./terminal-commands/init.js";
 import RegisterTerminalCommandGetInviteLink from "./terminal-commands/get-invite-link.js";
@@ -46,8 +46,23 @@ export class DiscordClient<Ready extends boolean = boolean> extends Discord.Clie
 	}
 }
 
-export class DiscordAuthorizationManager {
-	readonly intents: Discord.GatewayIntentBits[] = [Discord.GatewayIntentBits.Guilds];
+export interface Events {
+	/** Put all your needed intents, partials, scopes, permissions here! */
+	beforeClientCreation: () => void;
+	/** Put all your discord event listeners here! */
+	afterClientCreation: () => void;
+	afterClientConnection: () => void;
+}
+
+export class Module extends EventEmitter implements Core.IModule {
+	readonly name = "discord" as const;
+	readonly data: Data;
+	readonly core: Core.Core;
+	readonly log: Core.ModuleLogFunctions;
+	readonly client: DiscordClient<true>;
+	readonly slashCommands = SlashCommands;
+
+	readonly intents: Discord.GatewayIntentBits[] = [];
 	addIntents(...intents: Discord.GatewayIntentBits[]) {
 		for (const intent of intents) if (!this.intents.includes(intent)) this.intents.push(intent);
 		return this;
@@ -70,50 +85,39 @@ export class DiscordAuthorizationManager {
 		for (const permission of permissions) if (!this.permissions.includes(permission)) this.permissions.push(permission);
 		return this;
 	}
-}
-
-export interface DiscordModuleEvents {
-	/** Put all your discord event listeners here! */
-	afterClientCreation: () => void;
-	afterClientConnection: () => void;
-	/** Put all your needed intents, partials, scopes, permissions here! */
-	addAuthorizationFields: (authorizationManager: DiscordAuthorizationManager) => void;
-}
-
-export class DiscordModule extends EventEmitter {
-	readonly name = "discord" as const;
-	readonly data: DiscordModuleData;
-	readonly log = Core.log.makeFunctions(this.name);
-
-	readonly client: DiscordClient<true>;
-	readonly slashCommands = SlashCommands;
-
-	private authorizationManager = new DiscordAuthorizationManager();
 
 	protected onShard0Reconnecting() {
 		this.log.info(`Discord bot is attempting to reconnect...`);
 	}
 
-	/** WARNING: when calling this method, all event listeners will be deleted */
+	/** **WARNING:** when calling this method, all event listeners will be deleted */
 	createClient() {
-		(this.client as any) = new DiscordClient({failIfNotExists: false, intents: this.authorizationManager.intents, partials: this.authorizationManager.partials});
+		(this.client as any) = new DiscordClient({failIfNotExists: false, intents: this.intents, partials: this.partials});
 		return this;
 	}
 
 	constructor() {
 		super();
+		//throw new Error("nope.");
 
-		this.data = new DiscordModuleData(this).initialize();
 		RegisterTerminalCommandInit();
 		RegisterTerminalCommandGetInviteLink();
-
-		Core.once("initialized", () => this.onCoreInitialized());
 	}
 
-	protected onCoreInitialized() {
+	async load() {
+		Core.default.modules.setReadonlyFields(this, {
+			data: new Data(this),
+			core: Core.default,
+			log: Core.default.log.makeFunctions(this.name),
+		});
+		this.data.initialize();
+	}
+
+	async initialize() {
+		await this.load();
 		this.data.checkRequiredFields();
 
-		this.emit("addAuthorizationFields", this.authorizationManager);
+		this.emit("beforeClientCreation");
 		this.createClient();
 		this.slashCommands.initialize();
 
@@ -144,7 +148,7 @@ export class DiscordModule extends EventEmitter {
 		if (this.data.activity.length > 0)
 			this.client.options.presence = {activities: [{
 				type: Discord.ActivityType.Custom,
-				name: this.data.activity.replaceAll("%version%", Core.version)
+				name: this.data.activity.replaceAll("%version%", this.core.version)
 			}]};
 		this.client.login(this.data.token).then(_ => {
 			this.slashCommands.initialize2();
@@ -223,28 +227,28 @@ export class DiscordModule extends EventEmitter {
 	}
 
 	getInviteURL() {
-		return this.client.generateInvite({scopes: this.authorizationManager.scopes, permissions: this.authorizationManager.permissions});
+		return this.client.generateInvite({scopes: this.scopes, permissions: this.permissions});
 	}
 
-	override once<EventName extends keyof DiscordModuleEvents>(eventName: EventName, listener: DiscordModuleEvents[EventName]) {
+	override once<EventName extends keyof Events>(eventName: EventName, listener: Events[EventName]) {
 		return super.once(eventName, listener);
 	}
-	override prependOnceListener<EventName extends keyof DiscordModuleEvents>(eventName: EventName, listener: DiscordModuleEvents[EventName]) {
+	override prependOnceListener<EventName extends keyof Events>(eventName: EventName, listener: Events[EventName]) {
 		return super.prependOnceListener(eventName, listener);
 	}
-	override on<EventName extends keyof DiscordModuleEvents>(eventName: EventName, listener: DiscordModuleEvents[EventName]) {
+	override on<EventName extends keyof Events>(eventName: EventName, listener: Events[EventName]) {
 		return super.on(eventName, listener);
 	}
-	override prependListener<EventName extends keyof DiscordModuleEvents>(eventName: EventName, listener: DiscordModuleEvents[EventName]) {
+	override prependListener<EventName extends keyof Events>(eventName: EventName, listener: Events[EventName]) {
 		return super.prependListener(eventName, listener);
 	}
-	override off<EventName extends keyof DiscordModuleEvents>(eventName: EventName, listener: DiscordModuleEvents[EventName]) {
+	override off<EventName extends keyof Events>(eventName: EventName, listener: Events[EventName]) {
 		return super.off(eventName, listener);
 	}
-	override emit<EventName extends keyof DiscordModuleEvents>(eventName: EventName, ...args: Parameters<DiscordModuleEvents[EventName]>) {
+	override emit<EventName extends keyof Events>(eventName: EventName, ...args: Parameters<Events[EventName]>) {
 		return super.emit(eventName, ...args);
 	}
 }
-export default new DiscordModule();
+export default new Module();
 
 export * from "./slash-commands/index.js";

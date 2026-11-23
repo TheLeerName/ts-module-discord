@@ -159,9 +159,23 @@ export class ChatInputCommandInteraction<Cached extends Discord.CacheType = Disc
 export type SlashCommandChatInput = (interaction: Discord.ChatInputCommandInteraction<Discord.CacheType>) => Promise<any | void>;
 export type SlashCommandAutocomplete = (interaction: Discord.AutocompleteInteraction<Discord.CacheType>) => Promise<any | void>;
 
-export class SlashCommands extends Array<SlashCommand> {
+export class SlashCommands extends Map<string, SlashCommand> {
+	make(name: string, f: (command: SlashCommand) => SlashCommand) {
+		let command = this.get(name);
+		if (command != null) return command;
+		command = f(new SlashCommand());
+		command.setName(name);
+		this.add(command);
+		return command;
+	}
+	add(...values: SlashCommand[]) {
+		values.forEach(v => this.set(v.name, v));
+		return this;
+	}
+
 	initialize() {
-		this.push(PingCommand(), CommandsUpdateCommand());
+		PingCommand();
+		CommandsUpdateCommand();
 
 		Module.client
 			.on("guildCreate", guild => this.resetGuild(guild))
@@ -170,18 +184,20 @@ export class SlashCommands extends Array<SlashCommand> {
 
 	async initialize2() {
 		if (Module.data.masterGuildID.length > 0) {
-			const commandsToPush = [InviteLinkCommand(), ServerAllowCommand(), ServerBanCommand()];
+			const commands = [InviteLinkCommand(), ServerAllowCommand(), ServerBanCommand()];
 			try {
 				await Module.client.guilds.fetch(Module.data.masterGuildID);
-				this.push(...commandsToPush);
 			}
 			catch(error) {
-				Module.log.error(`Commands ${commandsToPush.map(c => c.name).join(", ")} were disabled`, {error, args: {guildID: Module.data.masterGuildID}});
+				for (const { name } of commands)
+					this.delete(name);
+				Module.log.error(`Commands ${commands.map(c => c.name).join(", ")} were disabled`, {error, args: {guildID: Module.data.masterGuildID}});
 			}
 		}
 
 		//await this.resetGlobal();
-		//await this.resetGuild(await Module.client.guilds.fetch("543464250702561290"));
+		//await this.resetGuild(await Module.client.guilds.fetch("590783997106454539"));
+		//await this.resetGuild(await Module.client.guilds.fetch("1505514041391710239"));
 
 		/*let globalReset = false;
 		let guildsReset = false;
@@ -236,7 +252,7 @@ export class SlashCommands extends Array<SlashCommand> {
 	}
 
 	isCommandInGuildAllowed(slashCommandName: string, guildID: string) {
-		const slashCommand = this.findByName(slashCommandName);
+		const slashCommand = this.get(slashCommandName);
 		if (!slashCommand) return !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
 		return slashCommand.isAllowedInGuild(guildID);
 	}
@@ -261,7 +277,7 @@ export class SlashCommands extends Array<SlashCommand> {
 		const isAutocomplete = interaction.isAutocomplete();
 		if (!isChatInputCommand && !isAutocomplete) return;
 
-		for (const command of this) if (command.name === interaction.commandName) {
+		for (const command of this.values()) if (command.name === interaction.commandName) {
 			if (!this.checkCommandInGuildAllowed(interaction, command) || !this.checkCooldown(interaction, command)) continue;
 
 			if (isChatInputCommand) command.chatInput?.(interaction);
@@ -279,23 +295,14 @@ export class SlashCommands extends Array<SlashCommand> {
 		}
 	}
 
-	findByName(name: string): SlashCommand | null {
-		for (const command of this) {
-			if (command.name === name)
-				return command;
-		}
-		return null;
-	}
-	findBannableByName(name: string): SlashCommand | null {
-		for (const command of this) {
-			if (command.bannable && command.name === name)
-				return command;
-		}
-		return null;
+	getBannable(name: string): SlashCommand | undefined {
+		const command = this.get(name);
+		if (command == null) return command;
+		return command.bannable ? command : undefined;
 	}
 
 	async resetGlobal(log = true) {
-		const array = this.filter(v => v.global).map(v => v.toJSON());
+		const array = Array.from(this.values()).filter(v => v.global).map(v => v.toJSON());
 		await Module.client.application.commands.set(array);
 		if (log) Module.log.info("Global slash commands were resetted", {args: {count: array.length}});
 	}
@@ -305,7 +312,7 @@ export class SlashCommands extends Array<SlashCommand> {
 	}
 
 	async resetGuild(guild: Discord.Guild, log = true) {
-		const array = this.filter(c => !c.global && c.isAllowedInGuild(guild.id)).map(v => v.toJSON());
+		const array = Array.from(this.values()).filter(c => !c.global && c.isAllowedInGuild(guild.id)).map(v => v.toJSON());
 		await guild.commands.set(array);
 		if (log) Module.log.info("Slash commands for guild were resetted", {args: {guild: `${guild.name} (${guild.id})`, count: array.length}});
 	}

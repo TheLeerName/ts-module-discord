@@ -1,15 +1,11 @@
-import Core from "../../../index.js";
 import Module from "../index.js";
-import { SlashCommand } from "./index.js";
-
 import { EmbedBuilder } from "discord.js";
 
-export default () => new SlashCommand()
+export default () => Module.slashCommands.make("commands-update", c => c
 .setGlobal()
 .setVersion(1)
 .setBannable(false)
 .setCooldown(30000)
-.setName("commands-update")
 .setDescription("Updates slash commands of bot")
 .setDescriptionLocalization("ru", "Обновляет слэш-команды бота")
 .setChatInput(async(interaction) => {
@@ -18,15 +14,15 @@ export default () => new SlashCommand()
 	await interaction.deferReply();
 
 	const args: any = {
-		user: `${interaction.user.username} (${interaction.user.id})`
+		user: Module.getUserNameAndID(interaction.user),
 	};
 	if (interaction.inCachedGuild()) {
-		args.guild = `${interaction.guild.name} (${interaction.guild.id})`;
+		args.guild = Module.getGuildNameAndID(interaction.guild);
 		await Module.slashCommands.resetGuild(interaction.guild);
 		await interaction.editReply({embeds: [new EmbedBuilder()
 			.setTitle(`:white_check_mark: Слэш-команды на этом сервере были успешно обновлены`)
 			.setColor("#77b255")
-			.setFooter({text: `Время обработки: ${Core.humanizeDuration(Date.now() - start)}`})
+			.setFooter({text: `Время обработки: ${Module.core.humanizeDuration(Date.now() - start)}`})
 		]});
 	}
 	else {
@@ -34,8 +30,8 @@ export default () => new SlashCommand()
 		await interaction.editReply({embeds: [new EmbedBuilder()
 			.setTitle(`:white_check_mark: Глобальные слэш-команды были успешно обновлены`)
 			.setColor("#77b255")
-			.setFooter({text: `Время обработки: ${Core.humanizeDuration(Date.now() - start)}`})
+			.setFooter({text: `Время обработки: ${Module.core.humanizeDuration(Date.now() - start)}`})
 		]});
 	}
-	Core.log.info(`Command ${interaction.commandName} success`, {args});
-});
+	Module.log.info(`Command ${interaction.commandName} success`, {args});
+}));
