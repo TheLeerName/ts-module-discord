@@ -33,8 +33,8 @@ export default () => Module.slashCommands.make("commands-server-ban", c => {c
 	await interaction.deferReply();
 
 	const args: any = {
-		guild: `${interaction.guild.name} (${interaction.guild.id})`,
-		user: `${interaction.user.username} (${interaction.user.id})`
+		member: Module.getGuildMemberNameAndID(interaction.member),
+		user: Module.getUserNameAndID(interaction.user),
 	};
 	try {
 		const guildID = interaction.options.getString("server-id", true);

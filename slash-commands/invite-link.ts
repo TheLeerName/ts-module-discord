@@ -16,6 +16,11 @@ export default () => Module.slashCommands.make("invite-link", c => c
 		user: Module.getUserNameAndID(interaction.user),
 		inviteURL: Module.getInviteURL(),
 	};
+	if (interaction.inCachedGuild()) {
+		args.guild = Module.getGuildNameAndID(interaction.guild);
+		delete args.user;
+		args.member = Module.getGuildMemberNameAndID(interaction.member);
+	}
 	await interaction.editReply({embeds: [new EmbedBuilder()
 		.setTitle(`:white_check_mark: Успешно!`)
 		.setColor("#77b255")

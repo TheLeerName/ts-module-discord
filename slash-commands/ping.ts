@@ -45,6 +45,10 @@ export default () => Module.slashCommands.make("ping", c => c
 		ping: `${ping}ms`,
 		uptime: `${uptime / 1000}s`
 	};
-	if (interaction.guild) args.guild = Module.getGuildNameAndID(interaction.guild);
+	if (interaction.inCachedGuild()) {
+		args.guild = Module.getGuildNameAndID(interaction.guild);
+		delete args.user;
+		args.member = Module.getGuildMemberNameAndID(interaction.member);
+	}
 	Module.log.info(`Command ${interaction.commandName} success`, {args});
 }));
