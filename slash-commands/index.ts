@@ -231,10 +231,7 @@ export class SlashCommands extends Map<string, SlashCommand> {
 	}
 
 	private checkCooldown(interaction: Discord.Interaction, command: SlashCommand | SlashSubcommand) {
-		if (command.cooldown) {
-			//if (Module.data.botOwnerID.length > 0 && Module.data.botOwnerID === interaction.user.id)
-				//return true;
-
+		if (interaction.isChatInputCommand() && command.cooldown && !(Module.data.masterGuildID.length > 0 && interaction.inCachedGuild() && Module.data.masterGuildID === interaction.guild.id)) {
 			const now = Date.now();
 			const lastUsed = command.usersUsedTimestamps.get(interaction.user.id);
 			if (lastUsed) {
