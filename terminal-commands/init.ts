@@ -34,7 +34,7 @@ async function tokenPart(rl: readline.Interface) {
 		process.exit(1);
 	}
 	Module.data.token = token;
-	Module.data.save();
+	Module.data.save(true);
 	console.log(`Successfully verified and saved! (${Date.now() - date}ms elapsed)`);
 }
 
@@ -45,7 +45,7 @@ async function activityPart(rl: readline.Interface) {
 		rl.write(Module.data.activity);
 	const activity = await rl.question("activity: ");
 	Module.data.activity = activity;
-	Module.data.save();
+	Module.data.save(true);
 	console.log("Saved!");
 }
 
@@ -108,7 +108,7 @@ async function masterGuildIDPart(rl: readline.Interface) {
 	}
 
 	Module.data.masterGuildID = masterGuildID;
-	Module.data.save();
+	Module.data.save(true);
 	console.log("Saved!");
 }
 

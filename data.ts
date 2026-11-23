@@ -12,19 +12,28 @@ export default class Data extends BaseData {
 	/** slash command name, guild ids */
 	slashCommandGuildAllowed: Map<string, Map<string, boolean>> = new Map();
 
+	/** If this `true`, next call of {@link save()} will save data */
+	needsSave = false;
+
 	initialize() {
 		const json = this.getSavedFields();
-		let needsSave = true;
+		this.needsSave = true;
 
-		needsSave = !this.registerFieldString(json, "token");
-		needsSave = !this.registerFieldString(json, "activity");
-		needsSave = !this.registerFieldString(json, "masterGuildID");
+		this.needsSave = !this.registerFieldString(json, "token");
+		this.needsSave = !this.registerFieldString(json, "activity");
+		this.needsSave = !this.registerFieldString(json, "masterGuildID");
 		//needsSave = !this.registerFieldMap(json, "slashCommandVersions");
-		needsSave = !this.registerFieldMap(json, "slashCommandGuildAllowed");
+		this.needsSave = !this.registerFieldMap(json, "slashCommandGuildAllowed");
 
-		if (needsSave)
-			this.save();
+		this.save();
 		return this;
+	}
+
+	async save(force?: boolean) {
+		if (force || this.needsSave) {
+			await super.save();
+			this.needsSave = false;
+		}
 	}
 
 	checkRequiredFields() {

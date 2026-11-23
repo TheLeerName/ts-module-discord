@@ -33,7 +33,7 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 		if (!guilds) return !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
 		return guilds.get(guildID) ?? !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
 	}
-	/** @returns is value was changed, if `true`, do `Module.data.save()` */
+	/** **NOTE:** this method may set {@link Module.data.needsSave} to `true` */
 	setAllowedInGuild(guildID: string, value: boolean | null) {
 		if (!this.bannable) return;
 		let dataGuilds = Module.data.slashCommandGuildAllowed.get(this.name);
@@ -49,13 +49,18 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 			}
 
 			dataGuilds.set(guildID, value);
+			Module.data.needsSave = true;
 		}
 		else {
 			if (dataGuilds) {
-				if (dataGuilds.has(guildID))
+				if (dataGuilds.has(guildID)) {
 					dataGuilds.delete(guildID);
-				if (Array.from(dataGuilds.keys()).length < 1)
+					Module.data.needsSave = true;
+				}
+				if (Array.from(dataGuilds.keys()).length < 1) {
 					Module.data.slashCommandGuildAllowed.delete(this.name);
+					Module.data.needsSave = true;
+				}
 			}
 		}
 

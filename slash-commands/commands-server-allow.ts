@@ -64,7 +64,7 @@ export default () => Module.slashCommands.make("commands-server-allow", c => {c
 			}
 		}
 		finally {
-			Module.data.save();
+			await Module.data.save();
 		}
 
 		await Module.slashCommands.resetGuild(guild);
