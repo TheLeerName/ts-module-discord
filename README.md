@@ -8,8 +8,9 @@ Contains methods to use Discord bot API
 |---|---|---|
 |`/ping`|Global|Sends ping in milliseconds and uptime formatted with `HumanizeDuration.js` as embed message|
 |`/commands-update`|Global|Sended on guild: updates slash commands in that guild<br>Sended outside guild: updates global slash commands|
-|`/commands-guild-allow`|Guild-only|Allows specified slash command on specified guild|
+|`/commands-guild-allow`|Guild-only (in master guild)|Allows specified slash command on specified guild|
 |`/commands-guild-ban`|Guild-only (in master guild)|Bans specified slash command on specified guild|
+|`/invite-link`|Guild-only (in master guild)|Sends invite link of bot for discord server|
 
 2. Slash command whitelist:
 - If `GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT` in `./slash-commands/index.ts` is `true`, slash command will be not added to guild without doing `/commands-guild-allow`
