@@ -4,12 +4,12 @@ Contains methods to use Discord bot API
 ## Features
 1. Adds discord slash commands:
 
-|Name|Description|
+|Name|Type|Description|
 |---|---|
-|`/ping`|Sends ping in milliseconds and uptime formatted with `HumanizeDuration.js` as embed message|
-|`/commands-update`|Sended on guild: updates slash commands in that guild<br>Sended outside guild: updates global slash commands|
-|`/commands-guild-allow`|Allows specified slash command on specified guild|
-|`/commands-guild-ban`|Bans specified slash command on specified guild|
+|`/ping`|Global|Sends ping in milliseconds and uptime formatted with `HumanizeDuration.js` as embed message|
+|`/commands-update`|Global|Sended on guild: updates slash commands in that guild<br>Sended outside guild: updates global slash commands|
+|`/commands-guild-allow`|Guild-only|Allows specified slash command on specified guild|
+|`/commands-guild-ban`|Guild-only (in master guild)|Bans specified slash command on specified guild|
 
 2. Slash command whitelist:
 - If `GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT` in `./slash-commands/index.ts` is `true`, slash command will be not added to guild without doing `/commands-guild-allow`
