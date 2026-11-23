@@ -3,8 +3,7 @@ import { EmbedBuilder } from "discord.js";
 
 export default () => Module.slashCommands.make("invite-link", c => c
 .setVersion(1)
-.setBannable(false)
-.setForMasterGuild(true)
+.setType("master_guild")
 .setDescription("Sends invite link of bot for discord server")
 .setDescriptionLocalization("ru", "Отправляет ссылку приглашения бота для Discord-сервера")
 .setChatInput(async(interaction) => {
@@ -13,14 +12,10 @@ export default () => Module.slashCommands.make("invite-link", c => c
 	await interaction.deferReply();
 
 	const args: any = {
-		user: Module.getUserNameAndID(interaction.user),
+		guild: Module.getGuildNameAndID(interaction.guild),
+		member: Module.getGuildMemberNameAndID(interaction.member),
 		inviteURL: Module.getInviteURL(),
 	};
-	if (interaction.inCachedGuild()) {
-		args.guild = Module.getGuildNameAndID(interaction.guild);
-		delete args.user;
-		args.member = Module.getGuildMemberNameAndID(interaction.member);
-	}
 	await interaction.editReply({embeds: [new EmbedBuilder()
 		.setTitle(`:white_check_mark: Успешно!`)
 		.setColor("#77b255")

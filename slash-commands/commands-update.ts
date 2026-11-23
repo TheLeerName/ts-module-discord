@@ -2,9 +2,8 @@ import Module from "../index.js";
 import { EmbedBuilder } from "discord.js";
 
 export default () => Module.slashCommands.make("commands-update", c => c
-.setGlobal()
 .setVersion(1)
-.setBannable(false)
+.setType("global")
 .setCooldown(30000)
 .setDescription("Updates slash commands of bot")
 .setDescriptionLocalization("ru", "Обновляет слэш-команды бота")

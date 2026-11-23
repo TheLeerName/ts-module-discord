@@ -2,9 +2,8 @@ import Module from "../index.js";
 import { EmbedBuilder } from "discord.js";
 
 export default () => Module.slashCommands.make("ping", c => c
-.setGlobal()
 .setVersion(3)
-.setBannable(false)
+.setType("global")
 .setDescription("Pings bot")
 .setDescriptionLocalization("ru", "Пингует бота")
 .setChatInput(async(interaction) => {

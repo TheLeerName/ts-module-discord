@@ -3,32 +3,30 @@ import { EmbedBuilder } from "discord.js";
 
 export default () => Module.slashCommands.make("commands-server-allow", c => {c
 .setVersion(1)
-.setBannable(false)
-.setForMasterGuild(true)
+.setType("master_guild")
 .setDescription("Allows specified slash commands for specified server")
 .setDescriptionLocalization("ru", "Разрешает выбранные слэш-команды для выбранного сервера")
 .setAutocomplete(async(interaction) => {
 	const focused = interaction.options.getFocused(true);
-	if (focused.name === "server-id")
-		return await interaction.respond(interaction.client.guilds.cache.map(g => {return {name: g.name, value: g.id}}));
+	if (focused.name === "server-id") {
+		let answer = interaction.client.guilds.cache;
+		if (Module.data.masterGuildID.length > 0)
+			answer = answer.filter(g => g.id !== Module.data.masterGuildID);
+		return await interaction.respond(answer.map(g => {return {name: g.name, value: g.id}}));
+	}
 	if (focused.name === "slash-command-names") {
-		if (interaction.inCachedGuild()) {
-			const index = focused.value.lastIndexOf(",");
-			let beforeLastIndex = "";
-			let afterLastIndex = focused.value;
-			if (index > -1) {
-				beforeLastIndex = focused.value.substring(0, index + 1);
-				afterLastIndex = focused.value.substring(index + 1);
-			}
-
-			return interaction.respond(Array.from(Module.slashCommands.values()).filter(s => !s.global && s.bannable).sort((a, b) => b.name.indexOf(afterLastIndex) - a.name.indexOf(afterLastIndex)).slice(0, 10).map(s => beforeLastIndex + s.name + ",").map(s => {return {name: s, value: s}}));
+		const index = focused.value.lastIndexOf(",");
+		let beforeLastIndex = "";
+		let afterLastIndex = focused.value;
+		if (index > -1) {
+			beforeLastIndex = focused.value.substring(0, index + 1);
+			afterLastIndex = focused.value.substring(index + 1);
 		}
-		return interaction.respond([]);
+
+		return interaction.respond(Array.from(Module.slashCommands.values()).filter(s => s.type === "guild").sort((a, b) => b.name.indexOf(afterLastIndex) - a.name.indexOf(afterLastIndex)).slice(0, 10).map(s => beforeLastIndex + s.name + ",").map(s => {return {name: s, value: s}}));
 	}
 })
 .setChatInput(async(interaction) => {
-	if (!interaction.inCachedGuild()) return;
-
 	const start = Date.now();
 	await interaction.deferReply();
 
@@ -54,9 +52,9 @@ export default () => Module.slashCommands.make("commands-server-allow", c => {c
 			for (const slashCommandName of slashCommandNames.split(",")) {
 				if (slashCommandName.length < 1) continue;
 
-				const slashCommand = Module.slashCommands.getBannable(slashCommandName);
-				if (!slashCommand)
-					throw new Error(`Слэш-команда "${slashCommandName}" либо не существует либо она разрешена на всех серверах!`);
+				const slashCommand = Module.slashCommands.get(slashCommandName);
+				if (!slashCommand || slashCommand.type !== "guild")
+					throw new Error(`Слэш-команда "${slashCommandName}" и так всегда разрешена!`);
 
 				const result = slashCommand.setAllowedInGuild(guild.id, true);
 				if (!result)

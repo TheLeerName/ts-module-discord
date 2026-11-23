@@ -12,10 +12,8 @@ const GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT = true;
 
 export class SlashCommand extends Discord.SlashCommandBuilder {
 	version: number = 1;
-	global: boolean = false;
+	type: "global" | "guild" | "master_guild" = "global";
 	cooldown: number | null = null;
-	bannable: boolean = true;
-	forMasterGuild: boolean = false;
 	chatInput: SlashCommandChatInput | null = null;
 	autocomplete: SlashCommandAutocomplete | null = null;
 
@@ -23,11 +21,12 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 	subcommands: SlashSubcommand[] = [];
 
 	isAllowedInGuild(guildID: string) {
-		if (this.global) return true;
-		if (this.forMasterGuild)
+		if (this.type === "global") return true;
+		if (this.type === "master_guild")
 			return Module.data.masterGuildID.length > 0 && Module.data.masterGuildID === guildID;
-		if (!this.bannable) return true;
-		if (Module.data.masterGuildID.length > 0 && Module.data.masterGuildID === guildID) return true;
+
+		if (Module.data.masterGuildID.length > 0 && Module.data.masterGuildID === guildID)
+			return true;
 
 		const guilds = Module.data.slashCommandGuildAllowed.get(this.name);
 		if (!guilds) return !GUILD_SLASH_COMMAND_RESTRICT_BY_DEFAULT;
@@ -35,7 +34,7 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 	}
 	/** **NOTE:** this method may set {@link Module.data.needsSave} to `true` */
 	setAllowedInGuild(guildID: string, value: boolean | null) {
-		if (!this.bannable) return;
+		if (this.type !== "guild") return false;
 		let dataGuilds = Module.data.slashCommandGuildAllowed.get(this.name);
 
 		if (value != null) {
@@ -71,21 +70,13 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 		this.version = value;
 		return this;
 	}
-	setGlobal(value = true) {
-		this.global = value;
-		return this;
+	setType<Type extends typeof this.type>(type: Type): (Type extends "guild" | "master_guild" ? SlashCommandInGuild : SlashCommand) {
+		this.type = type;
+		return this as any;
 	}
 	/** @param cooldown in milliseconds */
 	setCooldown(cooldown: number | null) {
 		this.cooldown = cooldown;
-		return this;
-	}
-	setBannable(bannable: boolean) {
-		this.bannable = bannable;
-		return this;
-	}
-	setForMasterGuild(forMasterGuild: boolean) {
-		this.forMasterGuild = forMasterGuild;
 		return this;
 	}
 	setChatInput(chatInput: SlashCommandChatInput) {
@@ -127,6 +118,11 @@ export class SlashCommand extends Discord.SlashCommandBuilder {
 	}
 }
 
+export interface SlashCommandInGuild extends SlashCommand {
+	setChatInput: (chatInput: SlashCommandInGuildChatInput) => this;
+	setAutocomplete: (chatInput: SlashCommandInGuildAutocomplete) => this;
+}
+
 export class SlashSubcommand extends Discord.SlashCommandSubcommandBuilder {
 	usersUsedTimestamps: Map<string, number> = new Map();
 	cooldown: number | null = null;
@@ -162,7 +158,10 @@ export class ChatInputCommandInteraction<Cached extends Discord.CacheType = Disc
 }
 
 export type SlashCommandChatInput = (interaction: Discord.ChatInputCommandInteraction<Discord.CacheType>) => Promise<any | void>;
+export type SlashCommandInGuildChatInput = (interaction: Discord.ChatInputCommandInteraction<"cached">) => Promise<any | void>;
+
 export type SlashCommandAutocomplete = (interaction: Discord.AutocompleteInteraction<Discord.CacheType>) => Promise<any | void>;
+export type SlashCommandInGuildAutocomplete = (interaction: Discord.AutocompleteInteraction<"cached">) => Promise<any | void>;
 
 export class SlashCommands extends Map<string, SlashCommand> {
 	make(name: string, f: (command: SlashCommand) => SlashCommand) {
@@ -300,14 +299,8 @@ export class SlashCommands extends Map<string, SlashCommand> {
 		}
 	}
 
-	getBannable(name: string): SlashCommand | undefined {
-		const command = this.get(name);
-		if (command == null) return command;
-		return command.bannable ? command : undefined;
-	}
-
 	async resetGlobal(log = true) {
-		const array = Array.from(this.values()).filter(v => v.global).map(v => v.toJSON());
+		const array = Array.from(this.values()).filter(v => v.type === "global").map(v => v.toJSON());
 		await Module.client.application.commands.set(array);
 		if (log) Module.log.info("Global slash commands were resetted", {args: {count: array.length}});
 	}
@@ -317,7 +310,7 @@ export class SlashCommands extends Map<string, SlashCommand> {
 	}
 
 	async resetGuild(guild: Discord.Guild, log = true) {
-		const array = Array.from(this.values()).filter(c => !c.global && c.isAllowedInGuild(guild.id)).map(v => v.toJSON());
+		const array = Array.from(this.values()).filter(c => c.type !== "global" && c.isAllowedInGuild(guild.id)).map(v => v.toJSON());
 		await guild.commands.set(array);
 		if (log) Module.log.info("Slash commands for guild were resetted", {args: {guild: `${guild.name} (${guild.id})`, count: array.length}});
 	}
